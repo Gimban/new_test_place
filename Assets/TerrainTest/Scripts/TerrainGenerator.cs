@@ -34,8 +34,8 @@ public class TerrainGenerator : MonoBehaviour
         for (int i = 0; i < numSurfacePoints; i++)
         {
             float x = i * pointSpacing;
-            float y = Random.Range(minHeight, maxHeight);
-            terrainPoints.Add(new Vector2(x, y));
+            float y = Mathf.PerlinNoise(x * 0.05f, 0) * (maxHeight - minHeight) + minHeight;
+        terrainPoints.Add(new Vector2(x, y));
         }
 
         // Line Renderer를 닫힌 형태로 만들기 위해 아래쪽 점들 추가
