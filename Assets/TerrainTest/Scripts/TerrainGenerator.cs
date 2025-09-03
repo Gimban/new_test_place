@@ -14,11 +14,14 @@ public class TerrainGenerator : MonoBehaviour
     private EdgeCollider2D edgeCollider;
     private List<Vector2> terrainPoints = new List<Vector2>();
     private int numSurfacePoints; // 지형 표면 점의 개수를 저장할 변수
+    private float seed;
 
     void Awake()
     {
         lineRenderer = GetComponent<LineRenderer>();
         edgeCollider = GetComponent<EdgeCollider2D>();
+
+        seed = Random.Range(0f, 1000f);
         
         GenerateTerrain();
     }
@@ -34,7 +37,7 @@ public class TerrainGenerator : MonoBehaviour
         for (int i = 0; i < numSurfacePoints; i++)
         {
             float x = i * pointSpacing;
-            float y = Mathf.PerlinNoise(x * 0.05f, 0) * (maxHeight - minHeight) + minHeight;
+            float y = Mathf.PerlinNoise(x * 0.05f + seed, seed) * (maxHeight - minHeight) + minHeight;
         terrainPoints.Add(new Vector2(x, y));
         }
 
