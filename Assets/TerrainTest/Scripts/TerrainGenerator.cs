@@ -22,7 +22,7 @@ public class TerrainGenerator : MonoBehaviour
         edgeCollider = GetComponent<EdgeCollider2D>();
 
         seed = Random.Range(0f, 1000f);
-        
+
         GenerateTerrain();
     }
 
@@ -30,15 +30,24 @@ public class TerrainGenerator : MonoBehaviour
     {
         // 지형 표면 점 개수 계산
         numSurfacePoints = Mathf.FloorToInt(terrainWidth / pointSpacing) + 1;
-        
+
         terrainPoints.Clear();
 
         // 지형 표면 점 생성
         for (int i = 0; i < numSurfacePoints; i++)
         {
             float x = i * pointSpacing;
-            float y = Mathf.PerlinNoise(x * 0.05f + seed, seed) * (maxHeight - minHeight) + minHeight;
-        terrainPoints.Add(new Vector2(x, y));
+
+            // 퍼린 노이즈를 사용하여 y값 생성
+            float perlinY = Mathf.PerlinNoise(x * 0.1f + seed, seed);
+
+            // PerlinNoise 값(0.0 ~ 1.0)을 minHeight ~ maxHeight 범위로 스케일링
+            float y = perlinY * (maxHeight - minHeight) + minHeight;
+
+            // 지형 점의 y값이 minHeight 아래로 내려가지 않도록 제한
+            y = Mathf.Max(y, minHeight);
+
+            terrainPoints.Add(new Vector2(x, y));
         }
 
         // Line Renderer를 닫힌 형태로 만들기 위해 아래쪽 점들 추가
@@ -77,13 +86,22 @@ public class TerrainGenerator : MonoBehaviour
                 // 폭발 중심에 가까울수록 더 많이 파이도록 y값 조정
                 float destructionFactor = (explosionRadius - distance) / explosionRadius;
                 point.y -= destructionFactor * 2; // 파괴 강도 조절
+
+                // 지형 점의 y값이 minHeight 아래로 내려가지 않도록 제한
+                point.y = Mathf.Max(point.y, minHeight); // 이 줄을 추가합니다.
+
                 terrainPoints[i] = point;
             }
         }
-        
+
         // Line Renderer와 Collider 업데이트
-        // Vector2 리스트를 Vector3 배열로 변환하여 Line Renderer에 설정
         lineRenderer.SetPositions(terrainPoints.Select(p => (Vector3)p).ToArray());
         UpdateCollider();
+    }
+
+    // TerrainGenerator.cs 스크립트에 추가할 함수
+    public List<Vector2> GetTerrainPoints()
+    {
+        return terrainPoints;
     }
 }
