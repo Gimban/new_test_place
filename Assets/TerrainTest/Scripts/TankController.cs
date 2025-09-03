@@ -4,25 +4,29 @@ using System.Linq;
 public class TankController : MonoBehaviour
 {
     public float moveSpeed = 5f;
-    public float groundCheckDistance = 1f;
     public float groundOffset = 0.2f;
-    public LayerMask groundLayer;
     public TerrainGenerator terrainGenerator;
     public float edgeMargin = 2f;
-    public float sleepThreshold = 0.1f;
 
-    private Rigidbody2D rb;
+    private int currentPointIndex;
     private float minX, maxX;
 
     void Start()
     {
-        rb = GetComponent<Rigidbody2D>();
-        rb.sleepMode = RigidbodySleepMode2D.StartAwake;
-        
+        // Rigidbody2D는 더 이상 필요 없으므로 제거
+        if (GetComponent<Rigidbody2D>() != null)
+        {
+            Destroy(GetComponent<Rigidbody2D>());
+        }
+
         if (terrainGenerator != null)
         {
+            // 지형의 경계 좌표를 가져옵니다.
             minX = terrainGenerator.GetTerrainPoints().Min(p => p.x);
             maxX = terrainGenerator.GetTerrainPoints().Max(p => p.x);
+
+            // 탱크의 초기 위치 설정
+            PlaceTank();
         }
     }
 
@@ -30,54 +34,57 @@ public class TankController : MonoBehaviour
     {
         float horizontalInput = Input.GetAxisRaw("Horizontal");
 
-        bool atLeftEdge = (transform.position.x <= minX + edgeMargin) && (horizontalInput < 0);
-        bool atRightEdge = (transform.position.x >= maxX - edgeMargin) && (horizontalInput > 0);
+        // 이동할 방향 결정
+        int direction = Mathf.Sign(horizontalInput) > 0 ? 1 : -1;
 
-        if (atLeftEdge || atRightEdge)
+        // 입력이 있을 때만 이동
+        if (Mathf.Abs(horizontalInput) > 0.1f)
         {
-            rb.linearVelocity = Vector2.zero;
-            return;
+            // 현재 인덱스를 업데이트하여 다음 지점으로 이동
+            currentPointIndex += direction;
+            
+            // 인덱스 경계 확인 및 clamp
+            currentPointIndex = Mathf.Clamp(currentPointIndex, 0, terrainGenerator.GetTerrainPoints().Count - 1);
         }
+        
+        // 탱크 위치 업데이트
+        UpdateTankPosition();
+    }
+    
+    // 탱크 위치를 지형의 점에 맞춰 업데이트하는 함수
+    void UpdateTankPosition()
+    {
+        // 현재 인덱스에 해당하는 지형의 점을 가져옵니다.
+        Vector2 groundPoint = terrainGenerator.GetTerrainPoints()[currentPointIndex];
 
-        RaycastHit2D hit = Physics2D.Raycast(transform.position, Vector2.down, groundCheckDistance, groundLayer);
-        Debug.DrawRay(transform.position, Vector2.down * groundCheckDistance, Color.red);
+        // 탱크의 위치를 그 점에 맞춰 설정
+        Vector3 newPosition = new Vector3(groundPoint.x, groundPoint.y + groundOffset, transform.position.z);
+        transform.position = newPosition;
 
-        if (hit.collider != null)
+        // 탱크의 회전도 지형의 경사에 맞춥니다.
+        // 현재 인덱스와 다음 인덱스 점을 이용하여 경사 계산
+        if (currentPointIndex < terrainGenerator.GetTerrainPoints().Count - 1)
         {
-            Vector3 newPosition = hit.point + hit.normal * groundOffset;
-            transform.position = newPosition;
-
-            Vector2 groundNormal = hit.normal;
-            Vector2 surfaceRight = new Vector2(groundNormal.y, -groundNormal.x);
-
-            float angle = Mathf.Atan2(groundNormal.y, groundNormal.x) * Mathf.Rad2Deg - 90f;
+            Vector2 nextPoint = terrainGenerator.GetTerrainPoints()[currentPointIndex + 1];
+            Vector2 directionVector = (nextPoint - groundPoint).normalized;
+            float angle = Mathf.Atan2(directionVector.y, directionVector.x) * Mathf.Rad2Deg;
             transform.rotation = Quaternion.Euler(0, 0, angle);
-
-            // 입력이 없으면 속도를 즉시 0으로 만듭니다.
-            if (Mathf.Abs(horizontalInput) < 0.1f)
-            {
-                rb.linearVelocity = Vector2.zero;
-            }
-            else
-            {
-                rb.linearVelocity = surfaceRight * horizontalInput * moveSpeed;
-            }
-
-            // 정지 상태일 때 Rigidbody2D를 재우기
-            if (rb.linearVelocity.magnitude < sleepThreshold && Mathf.Abs(horizontalInput) < 0.1f)
-            {
-                rb.Sleep();
-            }
         }
-        else
+    }
+
+    // 초기 탱크 위치를 설정하는 함수
+    void PlaceTank()
+    {
+        // terrainPoints 배열에서 처음으로 경계 마진 안에 있는 인덱스를 찾습니다.
+        currentPointIndex = 0;
+        for (int i = 0; i < terrainGenerator.GetTerrainPoints().Count; i++)
         {
-            if (terrainGenerator != null)
+            if (terrainGenerator.GetTerrainPoints()[i].x >= minX + edgeMargin)
             {
-                float terrainHeight = terrainGenerator.GetTerrainHeight(transform.position.x);
-                Vector3 newPosition = new Vector3(transform.position.x, terrainHeight + 0.5f, transform.position.z);
-                transform.position = newPosition;
-                rb.linearVelocity = Vector2.zero;
+                currentPointIndex = i;
+                break;
             }
         }
+        UpdateTankPosition();
     }
 }
