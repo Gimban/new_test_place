@@ -104,4 +104,22 @@ public class TerrainGenerator : MonoBehaviour
     {
         return terrainPoints;
     }
+
+    // 주어진 X 좌표에서의 지형 높이를 반환합니다.
+    public float GetTerrainHeight(float x)
+    {
+        // 간단한 보간을 통해 높이 계산
+        // 지형 점을 순회하며 주어진 x 값에 해당하는 높이를 찾습니다.
+        for (int i = 0; i < numSurfacePoints - 1; i++)
+        {
+            if (x >= terrainPoints[i].x && x <= terrainPoints[i+1].x)
+            {
+                float dx = terrainPoints[i+1].x - terrainPoints[i].x;
+                float dy = terrainPoints[i+1].y - terrainPoints[i].y;
+                float ratio = (x - terrainPoints[i].x) / dx;
+                return terrainPoints[i].y + dy * ratio;
+            }
+        }
+        return minHeight;
+    }
 }
