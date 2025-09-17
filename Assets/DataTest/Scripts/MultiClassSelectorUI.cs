@@ -30,9 +30,6 @@ public class MultiClassSelectorUI : MonoBehaviour
     [Tooltip("확인 버튼")]
     public Button confirmButton;
     
-    [Tooltip("취소 버튼")]
-    public Button cancelButton;
-    
     [Tooltip("모두 지우기 버튼")]
     public Button clearAllButton;
 
@@ -49,6 +46,10 @@ public class MultiClassSelectorUI : MonoBehaviour
     [Header("선택 설정")]
     [Tooltip("최대 선택 가능한 클래스 수")]
     public int maxSelections = 3;
+    
+    [Header("클래스 데이터 설정")]
+    [Tooltip("MultiClassManager에서 클래스를 자동으로 로드할지 여부")]
+    public bool useManagerClasses = true;
 
     private MultiClassSelector classSelector;
 
@@ -72,7 +73,6 @@ public class MultiClassSelectorUI : MonoBehaviour
         classSelector.selectedClassesContainer = selectedClassesContainer;
         classSelector.selectedClassSlotPrefab = selectedClassSlotPrefab;
         classSelector.confirmButton = confirmButton;
-        classSelector.cancelButton = cancelButton;
         classSelector.clearAllButton = clearAllButton;
 
         // 스타일 설정
@@ -80,6 +80,7 @@ public class MultiClassSelectorUI : MonoBehaviour
         classSelector.defaultButtonColor = defaultButtonColor;
         classSelector.disabledButtonColor = disabledButtonColor;
         classSelector.maxSelections = maxSelections;
+        classSelector.useManagerClasses = useManagerClasses;
 
         // MultiClassManager가 없으면 생성
         if (MultiClassManager.Instance == null)
@@ -179,6 +180,27 @@ public class MultiClassSelectorUI : MonoBehaviour
         {
             classSelector.RemoveClassData(classData);
         }
+    }
+
+    // 클래스 목록 새로고침
+    public void RefreshClasses()
+    {
+        if (classSelector != null)
+        {
+            classSelector.RefreshClasses();
+        }
+    }
+
+    // 사용 가능한 클래스 개수 가져오기
+    public int GetAvailableClassCount()
+    {
+        return classSelector != null ? classSelector.GetAvailableClassCount() : 0;
+    }
+
+    // 특정 클래스가 사용 가능한지 확인
+    public bool IsClassAvailable(ClassData classData)
+    {
+        return classSelector != null ? classSelector.IsClassAvailable(classData) : false;
     }
 
     private void OnDestroy()
