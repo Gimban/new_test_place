@@ -9,7 +9,6 @@ public class MultiClassSelector : MonoBehaviour
     public Transform classButtonContainer;
     public GameObject classButtonPrefab;
     public Button confirmButton;
-    public Button cancelButton;
     public Button clearAllButton;
 
     [Header("Selected Classes Display")]
@@ -20,6 +19,7 @@ public class MultiClassSelector : MonoBehaviour
 
     [Header("Class Data")]
     public List<ClassData> availableClasses = new List<ClassData>();
+    public bool useManagerClasses = true; // MultiClassManager에서 클래스 자동 로드
 
     [Header("Selection Settings")]
     public int maxSelections = 3;
@@ -34,6 +34,7 @@ public class MultiClassSelector : MonoBehaviour
     private void Start()
     {
         InitializeUI();
+        LoadAvailableClasses();
         CreateClassButtons();
         CreateSelectedClassSlots();
         SetupButtonEvents();
@@ -47,6 +48,20 @@ public class MultiClassSelector : MonoBehaviour
 
         if (clearAllButton != null)
             clearAllButton.interactable = false;
+    }
+
+    private void LoadAvailableClasses()
+    {
+        if (useManagerClasses && MultiClassManager.Instance != null)
+        {
+            // MultiClassManager에서 클래스들 가져오기
+            availableClasses = MultiClassManager.Instance.GetAllClasses();
+            Debug.Log($"MultiClassManager에서 {availableClasses.Count}개의 클래스를 로드했습니다.");
+        }
+        else
+        {
+            Debug.Log("Inspector에서 설정된 클래스들을 사용합니다.");
+        }
     }
 
     private void CreateClassButtons()
@@ -126,9 +141,6 @@ public class MultiClassSelector : MonoBehaviour
     {
         if (confirmButton != null)
             confirmButton.onClick.AddListener(ConfirmSelection);
-
-        if (cancelButton != null)
-            cancelButton.onClick.AddListener(CancelSelection);
 
         if (clearAllButton != null)
             clearAllButton.onClick.AddListener(ClearAllSelections);
@@ -281,17 +293,21 @@ public class MultiClassSelector : MonoBehaviour
             
             // 선택 완료 이벤트 발생
             OnClassesSelected?.Invoke(selectedClasses);
+            
+            // GameScene으로 전환
+            if (SceneTransitionManager.Instance != null)
+            {
+                SceneTransitionManager.Instance.SafeTransitionToGame();
+            }
+            else
+            {
+                Debug.LogError("SceneTransitionManager를 찾을 수 없습니다!");
+            }
         }
         else
         {
             Debug.Log($"3개의 클래스를 모두 선택해야 합니다! (현재: {selectedClasses.Count}개)");
         }
-    }
-
-    public void CancelSelection()
-    {
-        ClearAllSelections();
-        Debug.Log("클래스 선택이 취소되었습니다.");
     }
 
     public void ClearAllSelections()
@@ -347,5 +363,26 @@ public class MultiClassSelector : MonoBehaviour
             CreateClassButtons();
             UpdateUI();
         }
+    }
+
+    // 클래스 목록 새로고침 (MultiClassManager에서 다시 로드)
+    public void RefreshClasses()
+    {
+        LoadAvailableClasses();
+        CreateClassButtons();
+        UpdateUI();
+        Debug.Log("클래스 목록이 새로고침되었습니다.");
+    }
+
+    // 특정 클래스가 사용 가능한지 확인
+    public bool IsClassAvailable(ClassData classData)
+    {
+        return availableClasses.Contains(classData);
+    }
+
+    // 사용 가능한 클래스 개수 가져오기
+    public int GetAvailableClassCount()
+    {
+        return availableClasses.Count;
     }
 }
